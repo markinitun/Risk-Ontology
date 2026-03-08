@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Risk Ontology — Conceptual Model</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0a0f1a;
+    --surface: #111827;
+    --surface-hover: #1e293b;
+    --border: #1e3a5f;
+    --border-light: #2d4a6f;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --text-muted: #64748b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(10,15,26,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  #header h1 { font-size: 16px; font-weight: 700; letter-spacing: 0.02em; color: #38bdf8; }
+  #header .subtitle { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+
+  .legend { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+  .legend-line { width: 18px; height: 2px; border-radius: 1px; }
+  .legend-node { width: 10px; height: 10px; border-radius: 2px; border: 1.5px solid; }
+
+  #canvas { width: 100%; height: 100%; cursor: grab; }
+  #canvas:active { cursor: grabbing; }
+
+  #tooltip {
+    position: fixed; display: none; background: var(--surface); border: 1px solid var(--border-light);
+    border-radius: 8px; padding: 14px 18px; max-width: 400px; z-index: 200;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5); pointer-events: none;
+  }
+  #tooltip .tt-name { font-weight: 700; font-size: 14px; color: #38bdf8; margin-bottom: 4px; }
+  #tooltip .tt-type { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  #tooltip .tt-desc { font-size: 13px; line-height: 1.5; color: var(--text-dim); }
+  #tooltip .tt-synonyms { margin-top: 8px; font-size: 11px; color: var(--text-muted); font-style: italic; }
+  #tooltip .tt-relations { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+  #tooltip .tt-rel { font-size: 12px; color: var(--text-dim); margin-bottom: 3px; font-family: 'JetBrains Mono', monospace; }
+
+  #controls { position: fixed; bottom: 16px; right: 16px; display: flex; flex-direction: column; gap: 6px; z-index: 100; }
+  #controls button {
+    width: 36px; height: 36px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-dim); border-radius: 6px; cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  #controls button:hover { background: var(--surface-hover); color: var(--text); border-color: var(--border-light); }
+
+  #info-panel {
+    position: fixed; bottom: 16px; left: 16px; background: rgba(17,24,39,0.9);
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;
+    font-size: 11px; color: var(--text-muted); z-index: 100; font-family: 'JetBrains Mono', monospace; line-height: 1.8;
+  }
+  .cd { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 3px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <h1>Risk Ontology — Conceptual Model</h1>
+    <span class="subtitle">Hover to inspect · Drag nodes · Scroll to zoom · Pan canvas</span>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-node" style="background:#0f2744;border-color:#d4a017;"></div>Concept</div>
+    <div class="legend-item"><div class="legend-node" style="background:#1a1a2e;border-color:#555;"></div>Sub-class</div>
+    <div class="legend-item"><div class="legend-node" style="background:#2a1a2e;border-color:#d946a8;"></div>Adjacent</div>
+    <div class="legend-item"><div class="legend-node" style="background:#0f1a2e;border-color:#2a6ab8;"></div>Example</div>
+    <div class="legend-item"><div class="legend-line" style="background:#38bdf8;"></div>has</div>
+    <div class="legend-item"><div class="legend-line" style="background:#ef4444;"></div>causes</div>
+    <div class="legend-item"><div class="legend-line" style="background:#a78bfa;"></div>informs</div>
+    <div class="legend-item"><div class="legend-line" style="background:#f59e0b;"></div>triggers</div>
+    <div class="legend-item"><div class="legend-line" style="background:#10b981;"></div>modifies</div>
+    <div class="legend-item"><div class="legend-line" style="background:#ec4899;"></div>frames</div>
+    <div class="legend-item"><div class="legend-line" style="background:#6366f1;"></div>influences</div>
+    <div class="legend-item"><div class="legend-line" style="background:#4b5563;"></div>is</div>
+  </div>
+</div>
+
+<svg id="canvas"></svg>
+
+<div id="tooltip">
+  <div class="tt-name"></div>
+  <div class="tt-type"></div>
+  <div class="tt-desc"></div>
+  <div class="tt-synonyms"></div>
+  <div class="tt-relations"></div>
+</div>
+
+<div id="controls">
+  <button onclick="zoomIn()" title="Zoom in">+</button>
+  <button onclick="zoomOut()" title="Zoom out">&minus;</button>
+  <button onclick="resetView()" title="Reset view">&#x27F2;</button>
+</div>
+
+<div id="info-panel">
+  <span id="node-count"></span> nodes · <span id="edge-count"></span> relations<br>
+  <span class="cd" style="background:#d4a017;"></span>concept (yellow)
+  <span class="cd" style="background:#e2e8f0;margin-left:6px;"></span>sub-class (white)<br>
+  <span class="cd" style="background:#d946a8;"></span>adjacent (pink)
+  <span class="cd" style="background:#60a5fa;margin-left:6px;"></span>example (blue)
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+// Category classification matching Termboard colors
+const adjacentIds = new Set(["cc41b07e-c8ab-30fa-ca2d-2c612f2915d3","cc587f5a-588c-094e-9f3d-9f8d1074be2d","5b46e2d7-814e-ba92-08cb-fd6a1df21dbd"]);
+const exampleIds = new Set(["551b8cfa-c465-a06d-a79f-3dc45df97295","62baac7a-045d-8cc5-a6d9-f827e9b6289c","a2b60879-d6a8-bd4a-ce90-ca5dbcb77bb2","e282c148-9afd-8bcb-7116-a0320ff79408","ff72300a-e592-7316-224e-445427794842"]);
+
+function getCat(id, type) {
+  if (type === 'concept') return 'concept';
+  if (adjacentIds.has(id)) return 'adjacent';
+  if (exampleIds.has(id)) return 'example';
+  return 'subclass';
+}
+
+const terms = [
+  {id:"0312dbd3-d174-5818-06ea-9691438b6607",name:"Plan",type:"term",description:null,synonyms:null},
+  {id:"065f9ca9-0b79-1327-4c13-ef2b5aa9673b",name:"RiskIndicator",type:"term",description:null,synonyms:null},
+  {id:"091ff702-93f8-e690-f360-7217045b927d",name:"UNCERTAINTY",type:"concept",description:"Lack of knowledge or certainty about the future state of the variables that produce an outcome. Not all uncertainties cause risk \u2013 some may create opportunities instead.",synonyms:"Risk driver, Risk Factor, Risk source, Cause"},
+  {id:"18925a88-bd08-0de7-9662-b0da46d38ed0",name:"ASSUMPTION",type:"concept",description:"A proposition accepted as true or as certain to occur, without proof. It serves as a logical underpinning of the organization\u2019s objectives, though not necessarily in a direct or obvious manner. It may also function as an expression of risk appetite.",synonyms:null},
+  {id:"19bd5d45-312f-11a5-87b4-0834cd6ab97c",name:"Threat",type:"term",description:null,synonyms:null},
+  {id:"1c762c0f-b197-9779-b415-c16d5f77d362",name:"Target",type:"term",description:null,synonyms:null},
+  {id:"2a350160-ee07-a6b8-39d9-9f265488c3af",name:"RISK",type:"concept",description:"An effect of one or more uncertainties on an objective. It is a set of possible consequences arising from deviations from, or violations of, assumptions.",synonyms:null},
+  {id:"2ee587b6-fd1d-ef3a-6546-b44791dda7bc",name:"Vulnerability",type:"term",description:null,synonyms:"Fragility"},
+  {id:"3535aaf8-dc88-a025-b319-1c2002b43505",name:"RecurringRisk",type:"term",description:"A risk characterized by a chronic condition that repeatedly triggers discrete loss events over time. The events are distinguishable and countable, but their recurrence is systematic, indicating an unresolved underlying cause.",synonyms:null},
+  {id:"3e26c956-426d-0cd1-d2f5-e62fe249b9f4",name:"Tolerance",type:"term",description:"Tolerance is an acceptance envelope \u2014 the range of deviation from a desired state that a system or agent is willing to absorb without initiating a response.",synonyms:null},
+  {id:"3fdfd3e1-e1fd-c361-101a-92050cd8351c",name:"PersistentRisk",type:"term",description:"A risk characterized by a structural condition that continuously generates adverse outcomes without discrete triggering events. The harm is not episodic but inherent to the condition itself.",synonyms:"Systemic"},
+  {id:"4f514e0c-f6d5-2b5f-2b37-c4165e1d4b29",name:"CompoundRisk",type:"term",description:"Not a risk per se, but a statistical aggregation of individual singular risks.",synonyms:null},
+  {id:"51f4a9f6-2710-8bde-7155-12f113b4c1ae",name:"KeyResult",type:"term",description:null,synonyms:null},
+  {id:"551b8cfa-c465-a06d-a79f-3dc45df97295",name:"Supplier",type:"term",description:null,synonyms:null},
+  {id:"5b46e2d7-814e-ba92-08cb-fd6a1df21dbd",name:"Control",type:"term",description:null,synonyms:null},
+  {id:"5ecea988-f433-f260-7eb0-20024ebb6f7e",name:"ControlIndicator",type:"term",description:null,synonyms:null},
+  {id:"60eef89b-c11c-485d-a4f6-3138da7fae33",name:"ACTION",type:"concept",description:"The practical implementation of a decision. It is dependent on resources, technical viability, and cultural acceptance.",synonyms:"Mitigation, Corrective action, Action Plan, Contingency, Risk treatment"},
+  {id:"62baac7a-045d-8cc5-a6d9-f827e9b6289c",name:"Product",type:"term",description:null,synonyms:null},
+  {id:"63aa48a1-9616-0140-4946-58d40133cffd",name:"Complexity",type:"term",description:null,synonyms:null},
+  {id:"663eb3b0-e891-5597-b952-396ddf1a8401",name:"Volatility",type:"term",description:null,synonyms:null},
+  {id:"7e7de156-11a9-1ca6-7a9d-49047c951c21",name:"OBSERVATION",type:"concept",description:"The result of proactive attention to relevant evidence and its subsequent recording. It serves as a reality check and confirmation of consistency within a system.",synonyms:null},
+  {id:"97b05658-7384-7196-565e-dc1906f597a3",name:"Signal",type:"term",description:null,synonyms:null},
+  {id:"97fde82f-e333-f4d0-366f-564c1c4c8c34",name:"ControlBehavior",type:"term",description:null,synonyms:null},
+  {id:"992f73ee-addf-3438-34f8-aca6fbbd3151",name:"DECISION",type:"concept",description:"A resolution on whether to take an action, based on prior inputs.",synonyms:null},
+  {id:"9c716ba1-61db-9491-72fb-2fc28a8cdc0d",name:"POLICY",type:"concept",description:"Specification of how a decision should be made, including constraints and criteria.",synonyms:null},
+  {id:"9cbb231d-cdf5-62cb-ee0b-b1f06a240c29",name:"OBJECTIVE",type:"concept",description:"Long-term goal tied to the organization\u2019s mission and vision, driving overall direction.",synonyms:null},
+  {id:"a2b60879-d6a8-bd4a-ce90-ca5dbcb77bb2",name:"Asset",type:"term",description:null,synonyms:null},
+  {id:"ad178e0f-0156-8ac3-ef1a-a14d6107e73e",name:"Issue",type:"term",description:null,synonyms:null},
+  {id:"ae83aefb-c3c8-0778-2240-50c81fad2f42",name:"Forecast",type:"term",description:null,synonyms:null},
+  {id:"b273ce76-7a56-bea2-18ed-3c9aabd4e547",name:"PerfIndicator",type:"term",description:null,synonyms:null},
+  {id:"b4d12e6a-c4c5-d5db-24e5-41fbdde210b8",name:"SingleEventRisk",type:"term",description:null,synonyms:null},
+  {id:"be2477df-1790-e9f5-cb10-c5602ef93828",name:"Finding",type:"term",description:null,synonyms:null},
+  {id:"c36a6f6f-4d56-6d49-2d18-1b9ace064c12",name:"Budget",type:"term",description:null,synonyms:null},
+  {id:"cc41b07e-c8ab-30fa-ca2d-2c612f2915d3",name:"FrequencyControl",type:"term",description:"An intervention that aims to reduce (or increase) the frequency of events.",synonyms:null},
+  {id:"cc587f5a-588c-094e-9f3d-9f8d1074be2d",name:"ImpactControl",type:"term",description:"An intervention that aims to reduce (or increase) the consequence of events.",synonyms:null},
+  {id:"ce2be3fc-71eb-0b2f-4446-68fd75020487",name:"Incident",type:"term",description:null,synonyms:null},
+  {id:"dc0c06f9-359b-d0b9-6dcc-71ec78698a47",name:"Variation",type:"term",description:null,synonyms:null},
+  {id:"dcb2d87e-f0cc-b415-5c0f-9324b82e9c40",name:"Threshold",type:"term",description:"A boundary condition \u2014 a point where the system transitions from one state to another. Crossing it triggers a qualitative change: an alarm fires, a classification shifts, an action is mandated.",synonyms:null},
+  {id:"dd306ae7-e70d-6c9c-37bf-3949faa41066",name:"Requirement",type:"term",description:"An aspect of a law, regulation or internal norm that must be followed. It may be qualitative or quantitative.",synonyms:null},
+  {id:"dfa3d1e6-e02c-1f1d-0b87-f06bdff1f7d8",name:"Claim",type:"term",description:null,synonyms:null},
+  {id:"e282c148-9afd-8bcb-7116-a0320ff79408",name:"Customer",type:"term",description:null,synonyms:null},
+  {id:"e747a0dc-0bd2-571e-df4c-6c2431e7706c",name:"INDICATOR",type:"concept",description:"A consolidation of observations, ideally complemented by contextual interpretation. It provides information useful for comparing the current state of a relevant variable with its desired or forecasted state. It may function for monitoring, warning, or insight.",synonyms:null},
+  {id:"ff72300a-e592-7316-224e-445427794842",name:"Contract",type:"term",description:null,synonyms:null}
+];
+
+const relations = [
+  {source:"c36a6f6f-4d56-6d49-2d18-1b9ace064c12",target:"18925a88-bd08-0de7-9662-b0da46d38ed0",name:"is"},
+  {source:"2a350160-ee07-a6b8-39d9-9f265488c3af",target:"992f73ee-addf-3438-34f8-aca6fbbd3151",name:"informs"},
+  {source:"065f9ca9-0b79-1327-4c13-ef2b5aa9673b",target:"e747a0dc-0bd2-571e-df4c-6c2431e7706c",name:"is"},
+  {source:"dd306ae7-e70d-6c9c-37bf-3949faa41066",target:"18925a88-bd08-0de7-9662-b0da46d38ed0",name:"is"},
+  {source:"cc587f5a-588c-094e-9f3d-9f8d1074be2d",target:"2a350160-ee07-a6b8-39d9-9f265488c3af",name:"modifies"},
+  {source:"9c716ba1-61db-9491-72fb-2fc28a8cdc0d",target:"992f73ee-addf-3438-34f8-aca6fbbd3151",name:"frames"},
+  {source:"4f514e0c-f6d5-2b5f-2b37-c4165e1d4b29",target:"2a350160-ee07-a6b8-39d9-9f265488c3af",name:"is"},
+  {source:"3e26c956-426d-0cd1-d2f5-e62fe249b9f4",target:"18925a88-bd08-0de7-9662-b0da46d38ed0",name:"is"},
+  {source:"18925a88-bd08-0de7-9662-b0da46d38ed0",target:"091ff702-93f8-e690-f360-7217045b927d",name:"has"},
+  {source:"9cbb231d-cdf5-62cb-ee0b-b1f06a240c29",target:"18925a88-bd08-0de7-9662-b0da46d38ed0",name:"has"},
+  {source:"97fde82f-e333-f4d0-366f-564c1c4c8c34",target:"7e7de156-11a9-1ca6-7a9d-49047c951c21",name:"is"},
+  {source:"1c762c0f-b197-9779-b415-c16d5f77d362",target:"9cbb231d-cdf5-62cb-ee0b-b1f06a240c29",name:"is"},
+  {source:"60eef89b-c11c-485d-a4f6-3138da7fae33",target:"7e7de156-11a9-1ca6-7a9d-49047c951c21",name:"triggers"},
+  {source:"cc41b07e-c8ab-30fa-ca2d-2c612f2915d3",target:"5b46e2d7-814e-ba92-08cb-fd6a1df21dbd",name:"is"},
+  {source:"3535aaf8-dc88-a025-b319-1c2002b43505",target:"2a350160-ee07-a6b8-39d9-9f265488c3af",name:"is"},
+  {source:"cc41b07e-c8ab-30fa-ca2d-2c612f2915d3",target:"091ff702-93f8-e690-f360-7217045b927d",name:"modifies"},
+  {source:"5ecea988-f433-f260-7eb0-20024ebb6f7e",target:"e747a0dc-0bd2-571e-df4c-6c2431e7706c",name:"is"},
+  {source:"b4d12e6a-c4c5-d5db-24e5-41fbdde210b8",target:"2a350160-ee07-a6b8-39d9-9f265488c3af",name:"is"},
+  {source:"ae83aefb-c3c8-0778-2240-50c81fad2f42",target:"18925a88-bd08-0de7-9662-b0da46d38ed0",name:"is"},
+  {source:"9cbb231d-cdf5-62cb-ee0b-b1f06a240c29",target:"9c716ba1-61db-9491-72fb-2fc28a8cdc0d",name:"influences"},
+  {source:"0312dbd3-d174-5818-06ea-9691438b6607",target:"18925a88-bd08-0de7-9662-b0da46d38ed0",name:"is"},
+  {source:"091ff702-93f8-e690-f360-7217045b927d",target:"2a350160-ee07-a6b8-39d9-9f265488c3af",name:"causes"},
+  {source:"dcb2d87e-f0cc-b415-5c0f-9324b82e9c40",target:"18925a88-bd08-0de7-9662-b0da46d38ed0",name:"is"},
+  {source:"ce2be3fc-71eb-0b2f-4446-68fd75020487",target:"7e7de156-11a9-1ca6-7a9d-49047c951c21",name:"is"},
+  {source:"19bd5d45-312f-11a5-87b4-0834cd6ab97c",target:"091ff702-93f8-e690-f360-7217045b927d",name:"is"},
+  {source:"cc587f5a-588c-094e-9f3d-9f8d1074be2d",target:"5b46e2d7-814e-ba92-08cb-fd6a1df21dbd",name:"is"},
+  {source:"2ee587b6-fd1d-ef3a-6546-b44791dda7bc",target:"091ff702-93f8-e690-f360-7217045b927d",name:"is"},
+  {source:"ad178e0f-0156-8ac3-ef1a-a14d6107e73e",target:"7e7de156-11a9-1ca6-7a9d-49047c951c21",name:"is"},
+  {source:"97b05658-7384-7196-565e-dc1906f597a3",target:"7e7de156-11a9-1ca6-7a9d-49047c951c21",name:"is"},
+  {source:"dfa3d1e6-e02c-1f1d-0b87-f06bdff1f7d8",target:"7e7de156-11a9-1ca6-7a9d-49047c951c21",name:"is"},
+  {source:"7e7de156-11a9-1ca6-7a9d-49047c951c21",target:"e747a0dc-0bd2-571e-df4c-6c2431e7706c",name:"informs"},
+  {source:"be2477df-1790-e9f5-cb10-c5602ef93828",target:"7e7de156-11a9-1ca6-7a9d-49047c951c21",name:"is"},
+  {source:"e747a0dc-0bd2-571e-df4c-6c2431e7706c",target:"9cbb231d-cdf5-62cb-ee0b-b1f06a240c29",name:"influences"},
+  {source:"3fdfd3e1-e1fd-c361-101a-92050cd8351c",target:"2a350160-ee07-a6b8-39d9-9f265488c3af",name:"is"},
+  {source:"b273ce76-7a56-bea2-18ed-3c9aabd4e547",target:"e747a0dc-0bd2-571e-df4c-6c2431e7706c",name:"is"},
+  {source:"63aa48a1-9616-0140-4946-58d40133cffd",target:"091ff702-93f8-e690-f360-7217045b927d",name:"is"},
+  {source:"dc0c06f9-359b-d0b9-6dcc-71ec78698a47",target:"091ff702-93f8-e690-f360-7217045b927d",name:"is"},
+  {source:"992f73ee-addf-3438-34f8-aca6fbbd3151",target:"60eef89b-c11c-485d-a4f6-3138da7fae33",name:"triggers"},
+  {source:"51f4a9f6-2710-8bde-7155-12f113b4c1ae",target:"9cbb231d-cdf5-62cb-ee0b-b1f06a240c29",name:"is"},
+  {source:"663eb3b0-e891-5597-b952-396ddf1a8401",target:"091ff702-93f8-e690-f360-7217045b927d",name:"is"},
+];
+
+const seenRels = new Set();
+const uniqueRelations = relations.filter(r => {
+  const key = `${r.source}-${r.name}-${r.target}`;
+  if (seenRels.has(key)) return false;
+  seenRels.add(key);
+  return true;
+});
+
+const termMap = {};
+terms.forEach(t => termMap[t.id] = t);
+
+document.getElementById('node-count').textContent = terms.length;
+document.getElementById('edge-count').textContent = uniqueRelations.length;
+
+const relColors = { is:'#4b5563', has:'#38bdf8', causes:'#ef4444', informs:'#a78bfa', triggers:'#f59e0b', modifies:'#10b981', frames:'#ec4899', influences:'#6366f1' };
+const catStyle = {
+  concept:  { bg:'#0f2744', border:'#d4a017', text:'#fbbf24', sw:2.5 },
+  subclass: { bg:'#1a1a2e', border:'#555',    text:'#e2e8f0', sw:1 },
+  adjacent: { bg:'#2a1a2e', border:'#d946a8', text:'#f0abfc', sw:1.5 },
+  example:  { bg:'#0f1a2e', border:'#2a6ab8', text:'#7dd3fc', sw:1 },
+};
+const catLabels = { concept:'CONCEPT (class)', subclass:'SUB-CLASS', adjacent:'ADJACENT SUB-CLASS', example:'EXAMPLE (not used)' };
+
+const W = window.innerWidth, H = window.innerHeight;
+const svg = d3.select('#canvas').attr('width', W).attr('height', H);
+
+const defs = svg.append('defs');
+Object.entries(relColors).forEach(([n, c]) => {
+  defs.append('marker').attr('id',`a-${n}`).attr('viewBox','0 -5 10 10').attr('refX',20).attr('refY',0)
+    .attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
+    .append('path').attr('d','M0,-4L10,0L0,4').attr('fill',c);
+});
+
+const g = svg.append('g');
+const zm = d3.zoom().scaleExtent([0.12,4]).on('zoom', e => g.attr('transform', e.transform));
+svg.call(zm);
+
+const nodes = terms.map(t => ({...t, cat: getCat(t.id, t.type)}));
+const links = uniqueRelations.map(r => ({source:r.source, target:r.target, name:r.name}));
+
+const sim = d3.forceSimulation(nodes)
+  .force('link', d3.forceLink(links).id(d=>d.id).distance(d=> d.name==='is'?85:165).strength(d=> d.name==='is'?0.22:0.5))
+  .force('charge', d3.forceManyBody().strength(d=> d.cat==='concept'?-500:d.cat==='example'?-60:-150))
+  .force('center', d3.forceCenter(W/2, H/2))
+  .force('collision', d3.forceCollide().radius(d=> d.cat==='concept'?52:28))
+  .force('x', d3.forceX(W/2).strength(0.025))
+  .force('y', d3.forceY(H/2).strength(0.025));
+
+const link = g.append('g').selectAll('line').data(links).join('line')
+  .attr('stroke', d=> relColors[d.name]||'#333')
+  .attr('stroke-width', d=> d.name==='is'?1:2)
+  .attr('stroke-opacity', d=> d.name==='is'?0.22:0.5)
+  .attr('stroke-dasharray', d=> d.name==='is'?'4,3':'none')
+  .attr('marker-end', d=> `url(#a-${d.name})`);
+
+const linkLbl = g.append('g').selectAll('text').data(links.filter(d=> d.name!=='is')).join('text')
+  .attr('font-size',10).attr('font-family',"'JetBrains Mono',monospace")
+  .attr('fill', d=> relColors[d.name]||'#666').attr('fill-opacity',0.7)
+  .attr('text-anchor','middle').text(d=> d.name);
+
+const node = g.append('g').selectAll('g').data(nodes).join('g').attr('cursor','pointer')
+  .call(d3.drag().on('start',ds).on('drag',dd).on('end',de));
+
+node.append('rect')
+  .attr('rx', d=> d.cat==='concept'?6:4).attr('ry', d=> d.cat==='concept'?6:4)
+  .attr('width', d=> { const cw=d.cat==='concept'?10:7, p=d.cat==='concept'?28:18; return Math.max(d.name.length*cw+p, d.cat==='concept'?100:55); })
+  .attr('height', d=> d.cat==='concept'?38:26)
+  .attr('x', d=> { const cw=d.cat==='concept'?10:7, p=d.cat==='concept'?28:18; return -Math.max(d.name.length*cw+p, d.cat==='concept'?100:55)/2; })
+  .attr('y', d=> d.cat==='concept'?-19:-13)
+  .attr('fill', d=> catStyle[d.cat].bg)
+  .attr('stroke', d=> catStyle[d.cat].border)
+  .attr('stroke-width', d=> catStyle[d.cat].sw);
+
+node.append('text')
+  .attr('text-anchor','middle').attr('dy','0.35em')
+  .attr('font-size', d=> d.cat==='concept'?13:11)
+  .attr('font-weight', d=> d.cat==='concept'?700:400)
+  .attr('font-family',"'DM Sans',sans-serif")
+  .attr('fill', d=> catStyle[d.cat].text)
+  .text(d=> d.name);
+
+const tip = document.getElementById('tooltip');
+
+node.on('mouseenter', function(ev, d) {
+  const rels = uniqueRelations.filter(r=> r.source===d.id||r.target===d.id);
+  const rl = rels.map(r=> `${termMap[r.source]?.name||'?'} \u2192 ${r.name} \u2192 ${termMap[r.target]?.name||'?'}`);
+  tip.querySelector('.tt-name').textContent = d.name;
+  tip.querySelector('.tt-type').textContent = catLabels[d.cat];
+  tip.querySelector('.tt-desc').textContent = d.description || 'No description provided.';
+  tip.querySelector('.tt-synonyms').textContent = d.synonyms ? `Also known as: ${d.synonyms}` : '';
+  tip.querySelector('.tt-relations').innerHTML = rl.length ? rl.map(r=>`<div class="tt-rel">${r}</div>`).join('') : '<div class="tt-rel">No direct relations</div>';
+  tip.style.display = 'block';
+  const cIds = new Set([d.id]); rels.forEach(r=> { cIds.add(r.source); cIds.add(r.target); });
+  node.select('rect').attr('opacity', n=> cIds.has(n.id)?1:0.1);
+  node.select('text').attr('opacity', n=> cIds.has(n.id)?1:0.1);
+  link.attr('stroke-opacity', l=> (l.source.id===d.id||l.target.id===d.id)?0.9:0.03);
+  linkLbl.attr('fill-opacity', l=> (l.source.id===d.id||l.target.id===d.id)?1:0.03);
+});
+node.on('mousemove', function(ev) {
+  let x=ev.clientX+16, y=ev.clientY+16;
+  if(x+410>window.innerWidth) x=ev.clientX-420;
+  if(y+300>window.innerHeight) y=ev.clientY-300;
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+});
+node.on('mouseleave', function() {
+  tip.style.display='none';
+  node.select('rect').attr('opacity',1); node.select('text').attr('opacity',1);
+  link.attr('stroke-opacity', d=> d.name==='is'?0.22:0.5);
+  linkLbl.attr('fill-opacity',0.7);
+});
+
+sim.on('tick', ()=> {
+  link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+  linkLbl.attr('x',d=>(d.source.x+d.target.x)/2).attr('y',d=>(d.source.y+d.target.y)/2-6);
+  node.attr('transform',d=>`translate(${d.x},${d.y})`);
+});
+
+function ds(e,d){if(!e.active)sim.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y;}
+function dd(e,d){d.fx=e.x;d.fy=e.y;}
+function de(e,d){if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}
+function zoomIn(){svg.transition().duration(300).call(zm.scaleBy,1.3);}
+function zoomOut(){svg.transition().duration(300).call(zm.scaleBy,0.7);}
+function resetView(){svg.transition().duration(500).call(zm.transform,d3.zoomIdentity);}
+
+setTimeout(()=>{
+  const b=g.node().getBBox(), s=0.75/Math.max(b.width/W,b.height/H);
+  const tx=W/2-s*(b.x+b.width/2), ty=H/2-s*(b.y+b.height/2);
+  svg.transition().duration(800).call(zm.transform,d3.zoomIdentity.translate(tx,ty).scale(s));
+},2000);
+</script>
+</body>
+</html>
